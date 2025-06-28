@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <title>CodeClue: AI Hints & Chat</title>
+  <style>
+    :root {
+      --primary-color: #5E81F4;
+      --secondary-color: #F8F9FF;
+      --accent-color: #FF7AC6;
+      --accent2-color: #3DD598;
+      --accent3-color: #FF974A;
+      --text-color: #1A1D1F;
+      --light-color: #FFFFFF;
+      --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      --chat-bg: #FFFFFF;
+      --user-bubble: #E5F7EF;
+      --ai-bubble: #F0F5FF;
+      --input-bg: #F8F9FF;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-width: 400px;
+      min-height: 550px;
+      box-sizing: border-box;
+      background: var(--secondary-color);
+      color: var(--text-color);
+    }
+    .popup-container {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: var(--shadow);
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+    }
+    .logo::before {
+      content: 'C';
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .brand-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 0;
+    }
+    .logo1 {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+    }
+    h2 {
+      color: var(--primary-color);
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    .hint-section {
+      background: var(--light-color);
+      border-radius: 12px;
+      margin-top: 10px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .hint-title {
+      color: var(--accent2-color);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 1.1rem;
+    }
+    #hint-answer {
+      width: 100%;
+      padding-top: 50px;
+      min-height: 155px;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid #E0E5FF;
+      border-radius: 12px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      font-size: 0.9rem;
+      line-height: 1.4;
+      resize: vertical;
+    }
+    .chat-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background: var(--chat-bg);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .chat-title {
+      color: var(--accent-color);
+      font-weight: 600;
+      margin-top: 10px;
+      margin-bottom: 12px;
+      font-size: 1.1rem;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .message {
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 14px;
+      font-size: 0.9rem;
+    }
+    .user-message {
+      align-self: flex-end;
+      background: var(--user-bubble);
+      border-bottom-right-radius: 4px;
+    }
+    .ai-message {
+      align-self: flex-start;
+      background: var(--ai-bubble);
+      border-bottom-left-radius: 4px;
+    }
+    .chat-input {
+      display: flex;
+      gap: 8px;
+    }
+    #chat-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #E0E5FF;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      background: var(--input-bg);
+    }
+    #send-btn {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 0 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #send-btn:hover {
+      background: var(--accent-color);
+    }
+    #send-btn:disabled {
+      background: #E0E5FF;
+      cursor: not-allowed;
+    }
+    .logo-section {
+      display: flex;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Main UI visible only on LeetCode -->
+  <div id="main-ui" class="popup-container" style="display: none;">
+    <div class="header">
+      <div class="logo"></div>
+      <span class="brand-name">CODE-CLUE</span>
+    </div>
+    <div class="hint-section">
+      <button type="button" class="btn btn-outline-success hint-title" id="hint-button">AI Hint</button>
+      <textarea id="hint-answer" readonly placeholder="Click the AI Hint button to see the hints here..."></textarea>
+    </div>
+    <div class="chat-section" style="margin-top: 10px;">
+      <h3 class="chat-title">Ask for More Hints</h3>
+      <div class="chat-messages" id="chat-messages">
+        <div class="message ai-message">
+          Hi! Ask me anything about this problem or if you want more hints.
+        </div>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="chat-input" placeholder="Type your question...">
+        <button id="send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message for non-LeetCode sites -->
+  <div id="not-leetcode" style="display: none; padding: 20px; text-align: center;">
+    <h4 style="color: #dc3545;">⚠️ Not a LeetCode Page</h4>
+    <p>Please open <strong>leetcode.com</strong> to use Code-Clue.</p>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
