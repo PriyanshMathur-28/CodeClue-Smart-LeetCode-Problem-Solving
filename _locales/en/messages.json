@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "CodeClue: Smart Hints for Coding Problems",
+    "description": "The name of the extension"
+  },
+  "appDesc": {
+    "message": "Smart hints and problem-solving companion for LeetCode.",
+    "description": "The description of the extension"
+  }
+}

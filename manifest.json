@@ -2,6 +2,8 @@
     "manifest_version": 3,
     "name": "CodeClue: Smart Hints for Coding Problems",
     "version": "2.0",
+    "description": "Smart hints and problem-solving companion for LeetCode.",
+    "default_locale": "en",
     "permissions": [
         "activeTab",
         "scripting",
