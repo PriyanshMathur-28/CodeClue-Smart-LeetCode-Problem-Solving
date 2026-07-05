@@ -20,9 +20,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         chrome.storage.sync.set({ geminiapikey: apiKey }, () => {
             const msg = document.getElementById("success-message");
-            // Trigger CSS animation (.show class) instead of just display:block
             msg.classList.add("show");
-            setTimeout(() => window.close(), 2000);
+            
+            // Close the tab fast (800ms) and reliably using Chrome extension APIs
+            setTimeout(() => {
+                chrome.tabs.getCurrent((tab) => {
+                    if (tab) {
+                        chrome.tabs.remove(tab.id);
+                    } else {
+                        window.close(); // Fallback
+                    }
+                });
+            }, 800);
         });
     });
 });

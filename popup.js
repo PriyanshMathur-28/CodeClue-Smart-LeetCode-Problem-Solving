@@ -42,6 +42,55 @@ function fetchWithTimeout(url, options, timeoutMs = 15000) {
     .finally(() => clearTimeout(timerId));
 }
 
+// Helper: robust Gemini API fetcher with automatic fallback for 503/429 errors
+async function fetchGeminiWithFallback(apiKey, prompt, generationConfig) {
+  // Exclusively use Gemini 2.5 Flash
+  const models = ["gemini-2.5-flash"];
+  let lastError = null;
+
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    
+    try {
+      const response = await fetchWithTimeout(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig
+        })
+      });
+
+      // 503 Unavailable, 429 Rate Limit, 404 Not Found -> try next model
+      if ((response.status === 503 || response.status === 429 || response.status === 404) && i < models.length - 1) {
+        console.warn(`Model ${model} unavailable (${response.status}). Falling back to ${models[i+1]}...`);
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let parsedError = errorText;
+        try {
+          const errObj = JSON.parse(errorText);
+          if (errObj.error && errObj.error.message) parsedError = errObj.error.message;
+        } catch(e) {}
+        throw new Error(`API request failed: ${response.status} - ${parsedError}`);
+      }
+
+      return response;
+    } catch (error) {
+      lastError = error;
+      // AbortError is a client timeout, throw immediately
+      if (error.name === "AbortError" || i === models.length - 1) {
+        throw error;
+      }
+      console.warn(`Model ${model} failed locally. Falling back to ${models[i+1]}...`);
+    }
+  }
+  throw lastError;
+}
+
 // Extract LeetCode problem content with improved error handling
 function extractProblem() {
   try {
@@ -173,30 +222,13 @@ Format:
 🔍 Approach: [Strategy]
 💡 Think About: [Focus point]
 
-Keep under 40-50 strictly and brutally honestly under 40 words words. Guide thinking, don't solve.`;
+Keep the response concise and well-structured. Guide their thinking, but DO NOT provide the exact code solution.`;
 
-  // Bug fix: use fetchWithTimeout so a stalled network doesn't freeze the UI
-  const response = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { 
-          temperature: 0.3, 
-          maxOutputTokens: 300,
-          stopSequences: ["🔚"]
-        }
-      })
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("API Error:", response.status, errorText);
-    throw new Error(`API request failed: ${response.status}`);
-  }
+  // Robust fetch with automatic model fallback for 503 Overloaded errors
+  const response = await fetchGeminiWithFallback(apiKey, prompt, { 
+    temperature: 0.3, 
+    maxOutputTokens: 3000
+  });
 
   const data = await response.json();
   const hint = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -222,37 +254,20 @@ Problem: ${text}
 Question: ${userQuestion}
 
 Rules:
-- Keep response under 40 words
-- Guide thinking, don't give solutions
+- Keep the response concise and focused (under 80 words)
+- Guide the user's thinking, but DO NOT provide the exact code solution
 - Be encouraging and direct
-- Ask leading questions if helpful
-The answer you provide should be extremely short and very easy to understand brutally honestly
+- Ask leading questions to help them reach the answer
 
 Response:`;
 
-  // Bug fix: use fetchWithTimeout so a stalled network doesn't freeze the chat
-  const response = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 200,
-          topK: 20,
-          topP: 0.8
-        }
-      })
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Chat API Error:", response.status, errorText);
-    throw new Error(`API request failed: ${response.status}`);
-  }
+  // Robust fetch with automatic model fallback for 503 Overloaded errors
+  const response = await fetchGeminiWithFallback(apiKey, prompt, {
+    temperature: 0.4,
+    maxOutputTokens: 3000,
+    topK: 20,
+    topP: 0.8
+  });
 
   const data = await response.json();
   const chatResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -281,37 +296,20 @@ Provide:
 CORRECTNESS: [0-100]%
 FEEDBACK: [Brief analysis with suggestions]
 
-Keep feedback under 200 words. Focus on correctness, efficiency, and improvements.
-Give the answer in plain test, no bold headings nothing. Make sure to maintain proper spacing and proper gaps between each new thing introduced.
-Do Not give full code instead if give line numbers and errors and tell how to fix threse error and give corrected lines not full code.
-No headings/no bold content should be there because * sign come with bold so I dont need bold texts
+Keep feedback concise but thorough. Focus on correctness, efficiency, and improvements.
+Give the answer in plain text without markdown bold syntax (do not use **). Use clear spacing and newlines between different points.
+If there are errors, provide the specific line numbers, explain how to fix the error, and provide only the corrected lines (not the full code).
 
-The answer you provide should be extremely short and very easy to understand brutally honestly
+Keep the explanation clear, direct, and easy to understand.
 `;
 
-  // Bug fix: use fetchWithTimeout so a stalled network doesn't freeze the UI
-  const response = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 500,
-          topK: 20,
-          topP: 0.8
-        }
-      })
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Code Analysis API Error:", response.status, errorText);
-    throw new Error(`API request failed: ${response.status}`);
-  }
+  // Robust fetch with automatic model fallback for 503 Overloaded errors
+  const response = await fetchGeminiWithFallback(apiKey, prompt, {
+    temperature: 0.3,
+    maxOutputTokens: 3000,
+    topK: 20,
+    topP: 0.8
+  });
 
   const data = await response.json();
   const fullResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -461,7 +459,7 @@ function initializeExtension() {
         if (error.name === "AbortError") {
           errorMessage = "❌ Request timed out. Please check your internet connection and try again.";
         } else if (error.message.includes("API")) {
-          errorMessage = "❌ API Error: Please check your API key and try again.";
+          errorMessage = `❌ ${error.message}`;
         } else {
           errorMessage = `❌ Error: ${error.message}`;
         }
@@ -551,7 +549,7 @@ function initializeExtension() {
         if (error.name === "AbortError") {
           errorMessage = "❌ Request timed out. Please check your internet connection and try again.";
         } else if (error.message.includes("API")) {
-          errorMessage = "❌ API Error: Please check your API key and try again.";
+          errorMessage = `❌ ${error.message}`;
         } else {
           errorMessage = `❌ Error: ${error.message}`;
         }
@@ -627,7 +625,7 @@ function initializeExtension() {
       if (error.name === "AbortError") {
         errorMessage = "❌ Request timed out. Please check your internet connection and try again.";
       } else if (error.message.includes("API")) {
-        errorMessage = "❌ API Error: Please check your API key and try again.";
+        errorMessage = `❌ ${error.message}`;
       } else {
         errorMessage = `❌ Error: ${error.message}`;
       }

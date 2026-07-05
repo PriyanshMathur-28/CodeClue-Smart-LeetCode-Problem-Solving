@@ -32,6 +32,7 @@
 ],
     "options_page": "options.html",
     "host_permissions": [
-        "https://leetcode.com/*"
+        "https://leetcode.com/*",
+        "https://generativelanguage.googleapis.com/*"
     ]
     }
