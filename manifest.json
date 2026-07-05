@@ -1,7 +1,7 @@
     {
     "manifest_version": 3,
     "name": "CodeClue: Smart Hints for Coding Problems",
-    "version": "1.0",
+    "version": "2.0",
     "permissions": [
         "activeTab",
         "scripting",
@@ -24,6 +24,12 @@
     "background": {
         "service_worker": "background.js"
     },
+    "web_accessible_resources": [
+  {
+    "resources": ["WensleyDemo.ttf", "codeclue2.png"],
+    "matches": ["<all_urls>"]
+  }
+],
     "options_page": "options.html",
     "host_permissions": [
         "https://leetcode.com/*"

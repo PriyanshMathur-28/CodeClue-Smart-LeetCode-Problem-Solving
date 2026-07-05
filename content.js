@@ -5,7 +5,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
             '[data-cy="question-content"]',
             '.question-content', 
             '.problem-description',
-            '.question-statement',
+            '.question-state-statement',
             '[class*="question"]',
             '[class*="problem"]'
         ];
@@ -46,5 +46,10 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         });
         
         sendResponse({ text: content || "No question/test content found." });
+
+        // Bug fix: return true to keep the message channel open.
+        // Without this, any future async path inside this listener would
+        // fail because Chrome closes the channel after the listener returns.
+        return true;
     }
 });
